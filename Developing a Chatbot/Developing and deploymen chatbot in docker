@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+    <script>!(function () {
+  let e = document.createElement("script"),
+    t = document.head || document.getElementsByTagName("head")[0];
+  (e.src =
+    "https://cdn.jsdelivr.net/npm/rasa-webchat@1.0.0/lib/index.js"),
+    // Replace 1.x.x with the version that you want
+    (e.async = !0),
+    (e.onload = () => {
+      window.WebChat.default(
+        {
+          customData: { language: "en" },
+          socketUrl: "http://localhost:5005",
+          // add other props here
+        },
+        null
+      );
+    }),
+    t.insertBefore(e, t.firstChild);
+})();
+</script>
+</body>
+</html>
+
+
+App.py
+from flask import Flask
+from flask import render_template
+# creates a Flask application, named app
+app = Flask(__name__, static_url_path='/static')
+@app.route("/")
+def index():
+    return render_template('index.html')
+
+# run the application
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", debug=True)
+
+docker compose
+version: '2'
+services:
+  rasa-flask:
+    image: rasa-chatotapp:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rasa-chat-app
+    volumes:
+      - .:/rasa_app
+    ports:
+      - 5000:5000
+    command: python3 app.py
+  rasa-server:
+    image: rasa/rasa:2.1.2-full
+    container_name: rasa-chatbot-server
+    volumes:
+      - .:/app
+    ports:
+      - 5005:5005
+    command: run -m models --enable-api --cors "*"
+
+docker file
+FROM tensorflow/tensorflow:2.2.0
+RUN mkdir -p /rasa_app
+WORKDIR /rasa_app
+COPY . /rasa_app
+RUN python -m pip install -U pip
+RUN pip install -r requirements.txt
+#RUN pip install --user rasa-nlu==0.14.0
+#RUN pip install --user rasa-core==0.13.2
+RUN python -m spacy download en
+RUN pip install --user rasa==2.1.2
+RUN pip install --user sanic==19.9.0
+Domain
+version: "2.0"
+
+intents:
+  - greet
+  - goodbye
+  - affirm
+  - deny
+  - mood_great
+  - mood_unhappy
+  - bot_challenge
+
+responses:
+  utter_greet:
+  - text: "Hey! How are you?"
+
+  utter_cheer_up:
+  - text: "Here is something to cheer you up:"
+    image: "https://i.imgur.com/nGF1K8f.jpg"
+
+  utter_did_that_help:
+  - text: "Did that help you?"
+
+  utter_happy:
+  - text: "Great, carry on!"
+
+  utter_goodbye:
+  - text: "Bye"
+
+  utter_iamabot:
+  - text: "I am a bot, powered by Rasa."
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
+datafile
+version: "2.0"
+
+nlu:
+- intent: greet
+  examples: |
+    - hey
+    - hello
+    - hi
+    - hello there
+    - good morning
+    - good evening
+    - moin
+    - hey there
+    - let's go
+    - hey dude
+    - goodmorning
+    - goodevening
+    - good afternoon
+
+- intent: goodbye
+  examples: |
+    - good afternoon
+    - cu
+    - good by
+    - cee you later
+    - good night
+    - bye
+    - goodbye
+    - have a nice day
+    - see you around
+    - bye bye
+    - see you later
+
+- intent: affirm
+  examples: |
+    - yes
+    - y
+    - indeed
+    - of course
+    - that sounds good
+    - correct
+
+- intent: deny
+  examples: |
+    - no
+    - n
+    - never
+    - I don't think so
+    - don't like that
+    - no way
+    - not really
+
+- intent: mood_great
+  examples: |
+    - perfect
+    - great
+    - amazing
+    - feeling like a king
+    - wonderful
+    - I am feeling very good
+    - I am great
+    - I am amazing
+    - I am going to save the world
+    - super stoked
+    - extremely good
+    - so so perfect
+    - so good
+    - so perfect
+
+- intent: mood_unhappy
+  examples: |
+    - my day was horrible
+    - I am sad
+    - I don't feel very well
+    - I am disappointed
+    - super sad
+    - I'm so sad
+    - sad
+    - very sad
+    - unhappy
+    - not good
+    - not very good
+    - extremly sad
+    - so saad
+    - so sad
+
+- intent: bot_challenge
+  examples: |
+    - are you a bot?
+    - are you a human?
+    - am I talking to a bot?
+    - am I talking to a human?
